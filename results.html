@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Branch Validation — Results</title>
+  <link rel="stylesheet" href="results.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <h1>Branch Validation Results</h1>
+      <p id="generated-at" class="meta"></p>
+    </header>
+
+    <!-- Loading state -->
+    <div id="loading" class="card">
+      <p><span class="spinner"></span> Loading results…</p>
+    </div>
+
+    <!-- Error state -->
+    <div id="error" class="card error-card hidden">
+      <p id="error-text"></p>
+    </div>
+
+    <!-- Results content -->
+    <div id="results" class="hidden">
+
+      <!-- Summary cards -->
+      <div class="card-grid">
+        <div class="card summary-card">
+          <h2>Parent Branch</h2>
+          <p class="branch-name" id="parent-branch"></p>
+          <a id="parent-link" href="#" target="_blank" class="link">View commits ↗</a>
+        </div>
+        <div class="card summary-card">
+          <h2>Child Branch</h2>
+          <p class="branch-name" id="child-branch"></p>
+          <a id="child-link" href="#" target="_blank" class="link">View commits ↗</a>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="card">
+        <h2>Statistics</h2>
+        <div class="stats-grid">
+          <div class="stat">
+            <span class="stat-value" id="stat-parent-rows">—</span>
+            <span class="stat-label">Parent rows</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value" id="stat-child-rows">—</span>
+            <span class="stat-label">Child rows</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value" id="stat-parent-commits">—</span>
+            <span class="stat-label">Parent commits</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value" id="stat-child-commits">—</span>
+            <span class="stat-label">Child commits</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value" id="stat-above-common">—</span>
+            <span class="stat-label">Above common</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value" id="stat-missing">—</span>
+            <span class="stat-label">Missing IDs</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- First common changeset -->
+      <div class="card">
+        <h2>First Common Changeset</h2>
+        <div id="common-changeset-info"></div>
+      </div>
+
+      <!-- Missing IDs -->
+      <div class="card">
+        <h2>Missing IDs <span class="badge" id="missing-count"></span></h2>
+        <div id="missing-ids-content"></div>
+      </div>
+
+      <!-- Fallback changesets -->
+      <div class="card">
+        <h2>Fallback Changesets <span class="badge" id="fallback-count"></span></h2>
+        <p class="hint">Commits without a parseable task ID — verify manually.</p>
+        <div id="fallback-content"></div>
+      </div>
+
+      <!-- Full missing details table -->
+      <div class="card">
+        <h2>Full Missing Details</h2>
+        <div class="table-wrapper">
+          <table id="missing-table">
+            <thead>
+              <tr>
+                <th class="checkbox-col"><input type="checkbox" id="select-all-cb" title="Select all"></th>
+                <th>Type</th>
+                <th>ID</th>
+                <th>Author</th>
+                <th>Changeset</th>
+                <th>Message</th>
+              </tr>
+            </thead>
+            <tbody id="missing-table-body"></tbody>
+          </table>
+        </div>
+        <div id="zoho-crm-actions" class="zoho-actions hidden">
+          <span id="selected-count" class="selected-count">0 selected</span>
+          <button id="trigger-zoho-btn" class="btn btn-zoho" disabled>🍒 Cherry Pick the Entries</button>
+          <button id="notify-btn" class="btn btn-notify" disabled>🔔 Send Notification to Owner</button>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="actions">
+        <button id="download-btn" class="btn">⬇ Download JSON</button>
+        <button id="copy-ids-btn" class="btn btn-secondary">📋 Copy Missing IDs</button>
+        <button id="copy-selected-btn" class="btn btn-secondary" disabled>📋 Copy Selected IDs</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="results.js"></script>
+</body>
+</html>

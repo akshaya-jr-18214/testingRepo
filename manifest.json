@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "name": "Branch Validation",
+  "version": "1.0.0",
+  "description": "Validate GitLab branch commits — find missing commits between parent and child branches.",
+  "permissions": [
+    "tabs",
+    "scripting",
+    "storage",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://zgit.csez.zohocorpin.com/*",
+    "https://git.csez.zohocorpin.com/*",
+    "https://repository.zohocorpcloud.in/*",
+    "https://www.zohoapis.in/*"
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Branch Validation"
+  },
+  "background": {
+    "service_worker": "background/background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://zgit.csez.zohocorpin.com/*",
+        "https://git.csez.zohocorpin.com/*",
+        "https://repository.zohocorpcloud.in/*"
+      ],
+      "js": ["content/content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icons/gitLab16.png",
+    "48": "icons/gitLab48.png",
+    "128": "icons/gitLab128.png"
+  }
+}

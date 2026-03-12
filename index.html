@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Branch Validation — Chrome Extension</title>
+  <style>
+    /* ── Reset & Variables ──────────────────────────────── */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg:        #0d1117;
+      --surface:   #161b22;
+      --surface2:  #1c2333;
+      --border:    #30363d;
+      --text:      #e6edf3;
+      --text-dim:  #8b949e;
+      --accent:    #a78bfa;
+      --accent2:   #818cf8;
+      --green:     #3fb950;
+      --yellow:    #d29922;
+      --red:       #f85149;
+      --blue:      #58a6ff;
+      --radius:    12px;
+      --font:      -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --mono:      'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code { font-family: var(--mono); font-size: 0.9em; background: var(--surface2); padding: 2px 6px; border-radius: 4px; }
+
+    /* ── Navigation ────────────────────────────────────── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(13,17,23,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+    }
+    nav .nav-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+    }
+    nav .logo {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    nav .logo svg { width: 24px; height: 24px; }
+    nav .nav-links { display: flex; gap: 24px; }
+    nav .nav-links a {
+      color: var(--text-dim);
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    nav .nav-links a:hover { color: var(--text); text-decoration: none; }
+
+    /* ── Hero ──────────────────────────────────────────── */
+    .hero {
+      text-align: center;
+      padding: 80px 24px 60px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -200px; left: 50%; transform: translateX(-50%);
+      width: 800px; height: 600px;
+      background: radial-gradient(ellipse, rgba(167,139,250,0.12) 0%, transparent 65%);
+      pointer-events: none;
+    }
+    .hero h1 {
+      font-size: clamp(32px, 5vw, 52px);
+      font-weight: 800;
+      line-height: 1.15;
+      margin-bottom: 16px;
+    }
+    .hero h1 .highlight { color: var(--accent); }
+    .hero .tagline {
+      font-size: 18px;
+      color: var(--text-dim);
+      max-width: 600px;
+      margin: 0 auto 32px;
+    }
+    .hero .cta-group {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    /* ── Buttons ───────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+    }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-primary:hover { background: var(--accent2); text-decoration: none; }
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { border-color: var(--accent); text-decoration: none; }
+
+    /* ── Section ───────────────────────────────────────── */
+    .section {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 60px 24px;
+    }
+    .section-header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    .section-header h2 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .section-header p {
+      color: var(--text-dim);
+      font-size: 16px;
+    }
+
+    /* ── Feature Grid ──────────────────────────────────── */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      transition: border-color 0.25s, transform 0.2s;
+    }
+    .feature-card:hover {
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+    .feature-card .icon {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      margin-bottom: 14px;
+    }
+    .feature-card h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .feature-card p {
+      font-size: 14px;
+      color: var(--text-dim);
+      line-height: 1.6;
+    }
+
+    /* ── Services ──────────────────────────────────────── */
+    .service-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+    }
+    .service-chip {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      text-align: center;
+      font-weight: 600;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+    .service-chip:hover { border-color: var(--accent); }
+    .service-chip .name { color: var(--text); }
+    .service-chip .url { font-size: 11px; color: var(--text-dim); margin-top: 4px; display: block; word-break: break-all; }
+
+    /* ── Steps ─────────────────────────────────────────── */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 24px;
+      counter-reset: step;
+    }
+    .step {
+      position: relative;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 24px 24px;
+    }
+    .step::before {
+      counter-increment: step;
+      content: counter(step);
+      position: absolute;
+      top: -14px; left: 20px;
+      width: 28px; height: 28px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .step h3 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .step p, .step code {
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+
+    /* ── Workflow Flow ──────────────────────────────────── */
+    .workflow-flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      padding: 28px 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 32px;
+    }
+    .flow-step {
+      text-align: center;
+      padding: 16px;
+      border-radius: 10px;
+      background: var(--surface2);
+      min-width: 130px;
+    }
+    .flow-step .emoji { font-size: 28px; display: block; margin-bottom: 6px; }
+    .flow-step .label { font-size: 13px; font-weight: 600; }
+    .flow-step .detail { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+    .flow-arrow { font-size: 22px; color: var(--accent); }
+
+    /* ── Code Block ────────────────────────────────────── */
+    .code-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      overflow-x: auto;
+      margin: 16px 0;
+    }
+    .code-block pre {
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text);
+      white-space: pre;
+    }
+    .code-block .comment { color: #6a9955; }
+    .code-block .keyword { color: var(--accent); }
+    .code-block .string { color: #ce9178; }
+
+    /* ── Actions Dashboard ─────────────────────────────── */
+    .actions-dashboard {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .actions-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .actions-header h3 { font-size: 15px; }
+    .actions-body { padding: 20px; }
+
+    /* ── Config Panel ──────────────────────────────────── */
+    .config-panel {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .config-panel label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .config-panel input, .config-panel select {
+      width: 100%;
+      padding: 10px 12px;
+      font-size: 14px;
+      font-family: var(--font);
+      color: var(--text);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .config-panel input:focus, .config-panel select:focus {
+      border-color: var(--accent);
+    }
+    .config-panel .full-width { grid-column: 1 / -1; }
+
+    /* ── Run Log ───────────────────────────────────────── */
+    .run-log {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      max-height: 360px;
+      overflow-y: auto;
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.8;
+      margin-top: 12px;
+    }
+    .run-log .log-entry { padding: 2px 0; }
+    .run-log .log-info { color: var(--blue); }
+    .run-log .log-success { color: var(--green); }
+    .run-log .log-error { color: var(--red); }
+    .run-log .log-warn { color: var(--yellow); }
+
+    /* ── History Table ─────────────────────────────────── */
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .history-table th {
+      text-align: left;
+      padding: 10px 12px;
+      color: var(--text-dim);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--border);
+    }
+    .history-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .history-table tr:hover td { background: rgba(167,139,250,0.04); }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .status-badge.success { background: rgba(63,185,80,0.12); color: var(--green); }
+    .status-badge.running { background: rgba(210,153,34,0.12); color: var(--yellow); }
+    .status-badge.failed  { background: rgba(248,81,73,0.12); color: var(--red); }
+    .status-badge.pending { background: rgba(139,148,158,0.12); color: var(--text-dim); }
+
+    /* ── Tabs ──────────────────────────────────────────── */
+    .tabs {
+      display: flex;
+      gap: 2px;
+      background: var(--bg);
+      border-radius: 8px;
+      padding: 3px;
+      margin-bottom: 20px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: var(--font);
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      background: var(--surface);
+      color: var(--accent);
+    }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Footer ────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 24px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+
+    /* ── Responsive ────────────────────────────────────── */
+    @media (max-width: 640px) {
+      .config-panel { grid-template-columns: 1fr; }
+      .config-panel .full-width { grid-column: 1; }
+      .steps { grid-template-columns: 1fr; }
+      .workflow-flow { flex-direction: column; }
+      .flow-arrow { transform: rotate(90deg); }
+      nav .nav-links { gap: 14px; }
+      nav .nav-links a { font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Navigation ──────────────────────────────────────── -->
+<nav>
+  <div class="nav-inner">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="6" y1="3" x2="6" y2="15"></line>
+        <circle cx="18" cy="6" r="3"></circle>
+        <circle cx="6" cy="18" r="3"></circle>
+        <path d="M18 9a9 9 0 0 1-9 9"></path>
+      </svg>
+      Branch Validation
+    </div>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how-it-works">How It Works</a>
+      <a href="#install">Install</a>
+      <a href="#actions">Actions</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ── Hero ─────────────────────────────────────────────── -->
+<section class="hero">
+  <h1>
+    Validate <span class="highlight">GitLab Branches</span><br>
+    Find Missing Commits
+  </h1>
+  <p class="tagline">
+    A Chrome extension that compares parent and child branches on GitLab,
+    identifies missing commits, and integrates with Zoho CRM for cherry-pick actions.
+  </p>
+  <div class="cta-group">
+    <a href="#install" class="btn btn-primary">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 110 14A7 7 0 018 1zm0 2.5L4.5 8H7v4h2V8h2.5L8 3.5z"/></svg>
+      Download Extension
+    </a>
+    <a href="#actions" class="btn btn-secondary">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path fill-rule="evenodd" d="M1.5 8a6.5 6.5 0 1113 0 6.5 6.5 0 01-13 0zM8 0a8 8 0 100 16A8 8 0 008 0zm.5 4.75a.75.75 0 00-1.5 0v3.5a.75.75 0 00.37.65l2.5 1.5a.75.75 0 10.76-1.3L8.5 7.94V4.75z" clip-rule="evenodd"/></svg>
+      Trigger from GitHub
+    </a>
+  </div>
+</section>
+
+<!-- ── Features ─────────────────────────────────────────── -->
+<section class="section" id="features">
+  <div class="section-header">
+    <h2>Features</h2>
+    <p>Everything you need to validate branch integrity across GitLab repositories</p>
+  </div>
+
+  <div class="feature-grid">
+    <div class="feature-card">
+      <div class="icon" style="background:rgba(167,139,250,0.12)">🔍</div>
+      <h3>Two-Phase Extraction</h3>
+      <p>Quick scan of ~500 commits first. If no common changeset is found, automatically falls back to a full deep scan.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon" style="background:rgba(63,185,80,0.12)">✅</div>
+      <h3>Verified Common Changeset</h3>
+      <p>Doesn't just find the first match — verifies the next 4 entries below also match, eliminating false positives.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon" style="background:rgba(88,166,255,0.12)">📊</div>
+      <h3>Detailed Results</h3>
+      <p>Rich results page with statistics, missing IDs, fallback changesets, verification table, and full commit details.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon" style="background:rgba(210,153,34,0.12)">🍒</div>
+      <h3>Cherry-Pick Integration</h3>
+      <p>Select missing commits and trigger cherry-pick directly via Zoho CRM API with one click.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon" style="background:rgba(248,81,73,0.12)">🔔</div>
+      <h3>Owner Notifications</h3>
+      <p>Notify commit owners about missing entries directly from the results page via Zoho CRM functions.</p>
+    </div>
+    <div class="feature-card">
+      <div class="icon" style="background:rgba(129,140,248,0.12)">📜</div>
+      <h3>Validation History</h3>
+      <p>Stores the last 100 validations locally in the browser with quick-access from the extension popup.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── Supported Services ──────────────────────────────── -->
+<section class="section" id="services">
+  <div class="section-header">
+    <h2>Supported Services</h2>
+    <p>Pre-configured GitLab repositories for instant validation</p>
+  </div>
+
+  <div class="service-grid">
+    <div class="service-chip">
+      <span class="name">CRM</span>
+      <span class="url">zgit.csez.zohocorpin.com</span>
+    </div>
+    <div class="service-chip">
+      <span class="name">Bigin</span>
+      <span class="url">git.csez.zohocorpin.com</span>
+    </div>
+    <div class="service-chip">
+      <span class="name">CRM Intelligence</span>
+      <span class="url">git.csez.zohocorpin.com</span>
+    </div>
+    <div class="service-chip">
+      <span class="name">CRM Intelligence (Py)</span>
+      <span class="url">git.csez.zohocorpin.com</span>
+    </div>
+    <div class="service-chip">
+      <span class="name">Command Center</span>
+      <span class="url">git.csez.zohocorpin.com</span>
+    </div>
+    <div class="service-chip">
+      <span class="name">Platform</span>
+      <span class="url">zgit.csez.zohocorpin.com</span>
+    </div>
+    <div class="service-chip">
+      <span class="name">PhoneBridge</span>
+      <span class="url">repository.zohocorpcloud.in</span>
+    </div>
+  </div>
+</section>
+
+<!-- ── How It Works ─────────────────────────────────────── -->
+<section class="section" id="how-it-works">
+  <div class="section-header">
+    <h2>How It Works</h2>
+    <p>The validation pipeline from start to finish</p>
+  </div>
+
+  <div class="workflow-flow">
+    <div class="flow-step">
+      <span class="emoji">🔧</span>
+      <span class="label">Configure</span>
+      <span class="detail">Service + branches</span>
+    </div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step">
+      <span class="emoji">📖</span>
+      <span class="label">Phase 1</span>
+      <span class="detail">Quick ~500 commits</span>
+    </div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step">
+      <span class="emoji">🔎</span>
+      <span class="label">Check Common</span>
+      <span class="detail">Verify 4 entries</span>
+    </div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step">
+      <span class="emoji">📋</span>
+      <span class="label">Compare</span>
+      <span class="detail">Find missing IDs</span>
+    </div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-step">
+      <span class="emoji">📊</span>
+      <span class="label">Results</span>
+      <span class="detail">Report + actions</span>
+    </div>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <h3>Open the Extension</h3>
+      <p>Click the extension icon in Chrome toolbar. Select your service, enter the parent and child branch names.</p>
+    </div>
+    <div class="step">
+      <h3>Quick Scan</h3>
+      <p>The extension opens GitLab tabs, scrolls through commits, and extracts ~500 entries per branch to find a common changeset quickly.</p>
+    </div>
+    <div class="step">
+      <h3>Deep Scan (if needed)</h3>
+      <p>If no common changeset is found in the quick scan, a full extraction runs automatically — loading the complete commit history.</p>
+    </div>
+    <div class="step">
+      <h3>Review Results</h3>
+      <p>A detailed results page shows missing task IDs, verification data, statistics, and one-click cherry-pick or notification actions.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── Installation ─────────────────────────────────────── -->
+<section class="section" id="install">
+  <div class="section-header">
+    <h2>Installation</h2>
+    <p>Get started in under a minute</p>
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <h3>Download</h3>
+      <p>Download the latest release <code>.zip</code> from the <a href="#" id="release-link">GitHub Releases</a> page — or clone the repo.</p>
+    </div>
+    <div class="step">
+      <h3>Unzip</h3>
+      <p>Extract the archive to a folder on your machine. The folder should contain <code>manifest.json</code> at the root.</p>
+    </div>
+    <div class="step">
+      <h3>Load in Chrome</h3>
+      <p>Go to <code>chrome://extensions</code>, enable <strong>Developer mode</strong>, click <strong>Load unpacked</strong>, and select the folder.</p>
+    </div>
+    <div class="step">
+      <h3>Validate</h3>
+      <p>Navigate to any GitLab page, click the extension icon, fill in branches, and hit <strong>Validate</strong>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── GitHub Actions Dashboard ─────────────────────────── -->
+<section class="section" id="actions">
+  <div class="section-header">
+    <h2>GitHub Actions</h2>
+    <p>Trigger CI builds, download releases, and view run history — all from this page</p>
+  </div>
+
+  <div class="actions-dashboard">
+    <div class="actions-header">
+      <h3>🔧 Actions Control Panel</h3>
+      <span id="connection-status" class="status-badge pending">Not connected</span>
+    </div>
+
+    <div class="actions-body">
+      <!-- Settings -->
+      <div class="config-panel" id="settings-panel">
+        <div>
+          <label for="gh-owner">Owner / Org</label>
+          <input type="text" id="gh-owner" placeholder="your-github-username">
+        </div>
+        <div>
+          <label for="gh-repo">Repository</label>
+          <input type="text" id="gh-repo" placeholder="branch-validation-extension">
+        </div>
+        <div>
+          <label for="gh-token">Personal Access Token</label>
+          <input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxxx">
+        </div>
+        <div>
+          <label for="gh-branch">Branch</label>
+          <input type="text" id="gh-branch" placeholder="main" value="main">
+        </div>
+        <div class="full-width" style="display:flex;gap:10px;align-items:end;">
+          <button class="btn btn-primary" id="save-settings-btn" style="padding:10px 20px;">Save & Connect</button>
+          <span id="settings-status" style="font-size:13px;color:var(--text-dim);"></span>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="trigger">Trigger Build</button>
+        <button class="tab-btn" data-tab="history">Run History</button>
+        <button class="tab-btn" data-tab="releases">Releases</button>
+      </div>
+
+      <!-- Tab: Trigger Build -->
+      <div class="tab-panel active" id="tab-trigger">
+        <div class="config-panel">
+          <div>
+            <label for="workflow-select">Workflow</label>
+            <select id="workflow-select">
+              <option value="">— Connect to load workflows —</option>
+            </select>
+          </div>
+          <div>
+            <label for="version-bump">Version Bump</label>
+            <select id="version-bump">
+              <option value="none">None</option>
+              <option value="patch">Patch (x.x.X)</option>
+              <option value="minor">Minor (x.X.0)</option>
+              <option value="major">Major (X.0.0)</option>
+            </select>
+          </div>
+          <div class="full-width">
+            <button class="btn btn-primary" id="trigger-btn" disabled style="width:100%;">
+              ▶ Trigger Workflow
+            </button>
+          </div>
+        </div>
+        <div class="run-log" id="trigger-log">
+          <div class="log-entry log-info">Configure your GitHub settings above and click "Save & Connect" to get started.</div>
+        </div>
+      </div>
+
+      <!-- Tab: Run History -->
+      <div class="tab-panel" id="tab-history">
+        <div style="overflow-x:auto;">
+          <table class="history-table">
+            <thead>
+              <tr>
+                <th>Run</th>
+                <th>Workflow</th>
+                <th>Status</th>
+                <th>Branch</th>
+                <th>Started</th>
+                <th>Duration</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="history-body">
+              <tr><td colspan="7" style="text-align:center;color:var(--text-dim);padding:24px;">Connect to GitHub to view runs</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="text-align:center;margin-top:12px;">
+          <button class="btn btn-secondary" id="refresh-history-btn" style="padding:8px 16px;font-size:13px;">Refresh</button>
+        </div>
+      </div>
+
+      <!-- Tab: Releases -->
+      <div class="tab-panel" id="tab-releases">
+        <div id="releases-list" style="text-align:center;color:var(--text-dim);padding:24px;">Connect to GitHub to view releases</div>
+        <div style="text-align:center;margin-top:12px;">
+          <button class="btn btn-secondary" id="refresh-releases-btn" style="padding:8px 16px;font-size:13px;">Refresh</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Footer ──────────────────────────────────────────── -->
+<footer>
+  <p>Branch Validation Extension &middot; Built for GitLab branch integrity checks &middot; <a href="https://github.com" id="footer-repo-link">GitHub</a></p>
+</footer>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<script>
+(() => {
+  // ── Helpers ────────────────────────────────────────────
+  const $ = s => document.querySelector(s);
+  const $$ = s => [...document.querySelectorAll(s)];
+  const LS = key => localStorage.getItem(`bv_${key}`) || '';
+  const LS_SET = (key, val) => localStorage.setItem(`bv_${key}`, val);
+
+  // ── Tab switching ──────────────────────────────────────
+  $$('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      $$('.tab-btn').forEach(b => b.classList.remove('active'));
+      $$('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      $(`#tab-${btn.dataset.tab}`).classList.add('active');
+    });
+  });
+
+  // ── Settings ───────────────────────────────────────────
+  const ownerInput  = $('#gh-owner');
+  const repoInput   = $('#gh-repo');
+  const tokenInput  = $('#gh-token');
+  const branchInput = $('#gh-branch');
+  const connStatus  = $('#connection-status');
+  const settingsStatus = $('#settings-status');
+
+  // Restore saved settings
+  ownerInput.value  = LS('owner');
+  repoInput.value   = LS('repo');
+  tokenInput.value   = LS('token');
+  branchInput.value  = LS('branch') || 'main';
+
+  $('#save-settings-btn').addEventListener('click', async () => {
+    const owner  = ownerInput.value.trim();
+    const repo   = repoInput.value.trim();
+    const token  = tokenInput.value.trim();
+    const branch = branchInput.value.trim() || 'main';
+
+    if (!owner || !repo || !token) {
+      settingsStatus.textContent = '⚠️ All fields required';
+      settingsStatus.style.color = 'var(--yellow)';
+      return;
+    }
+
+    LS_SET('owner', owner);
+    LS_SET('repo', repo);
+    LS_SET('token', token);
+    LS_SET('branch', branch);
+
+    settingsStatus.textContent = 'Connecting...';
+    settingsStatus.style.color = 'var(--text-dim)';
+
+    try {
+      const res = await ghFetch(`/repos/${owner}/${repo}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      connStatus.textContent = 'Connected';
+      connStatus.className = 'status-badge success';
+      settingsStatus.textContent = '✅ Connected!';
+      settingsStatus.style.color = 'var(--green)';
+
+      // Update footer links
+      const repoUrl = `https://github.com/${owner}/${repo}`;
+      $('#footer-repo-link').href = repoUrl;
+      $('#release-link').href = `${repoUrl}/releases`;
+
+      await loadWorkflows();
+      await loadHistory();
+      await loadReleases();
+    } catch (err) {
+      connStatus.textContent = 'Failed';
+      connStatus.className = 'status-badge failed';
+      settingsStatus.textContent = '❌ ' + err.message;
+      settingsStatus.style.color = 'var(--red)';
+    }
+  });
+
+  // Auto-connect on load if settings exist
+  if (LS('owner') && LS('repo') && LS('token')) {
+    $('#save-settings-btn').click();
+  }
+
+  // ── GitHub API helper ──────────────────────────────────
+  function ghFetch(path, opts = {}) {
+    const token = LS('token');
+    return fetch(`https://api.github.com${path}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+        ...opts.headers,
+      },
+      ...opts,
+    });
+  }
+
+  // ── Logging ────────────────────────────────────────────
+  function log(msg, type = 'info') {
+    const el = $('#trigger-log');
+    const ts = new Date().toLocaleTimeString();
+    el.innerHTML += `<div class="log-entry log-${type}">[${ts}] ${msg}</div>`;
+    el.scrollTop = el.scrollHeight;
+  }
+
+  // ── Load workflows ─────────────────────────────────────
+  async function loadWorkflows() {
+    const owner = LS('owner'), repo = LS('repo');
+    try {
+      const res = await ghFetch(`/repos/${owner}/${repo}/actions/workflows`);
+      const data = await res.json();
+      const sel = $('#workflow-select');
+      sel.innerHTML = '';
+
+      (data.workflows || []).forEach(wf => {
+        const opt = document.createElement('option');
+        opt.value = wf.id;
+        opt.textContent = `${wf.name} (${wf.path.split('/').pop()})`;
+        sel.appendChild(opt);
+      });
+
+      if (!data.workflows?.length) {
+        sel.innerHTML = '<option value="">No workflows found</option>';
+      }
+
+      $('#trigger-btn').disabled = !data.workflows?.length;
+    } catch (err) {
+      log('Failed to load workflows: ' + err.message, 'error');
+    }
+  }
+
+  // ── Trigger workflow ───────────────────────────────────
+  $('#trigger-btn').addEventListener('click', async () => {
+    const owner  = LS('owner'), repo = LS('repo'), branch = LS('branch');
+    const wfId   = $('#workflow-select').value;
+    const bump   = $('#version-bump').value;
+
+    if (!wfId) { log('Select a workflow first', 'warn'); return; }
+
+    $('#trigger-btn').disabled = true;
+    $('#trigger-btn').textContent = '⏳ Triggering...';
+    log(`Triggering workflow ${wfId} on branch ${branch}...`);
+
+    try {
+      const body = { ref: branch };
+      if (bump !== 'none') {
+        body.inputs = { version_bump: bump };
+      }
+
+      const res = await ghFetch(`/repos/${owner}/${repo}/actions/workflows/${wfId}/dispatches`, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      });
+
+      if (res.status === 204) {
+        log('✅ Workflow triggered successfully!', 'success');
+        log('Polling for run status...');
+        setTimeout(() => pollRun(wfId), 3000);
+      } else {
+        const err = await res.json();
+        throw new Error(err.message || `HTTP ${res.status}`);
+      }
+    } catch (err) {
+      log('❌ Trigger failed: ' + err.message, 'error');
+    } finally {
+      $('#trigger-btn').disabled = false;
+      $('#trigger-btn').textContent = '▶ Trigger Workflow';
+    }
+  });
+
+  // ── Poll run status ────────────────────────────────────
+  async function pollRun(workflowId) {
+    const owner = LS('owner'), repo = LS('repo');
+    let attempts = 0;
+    const maxAttempts = 60;
+
+    const interval = setInterval(async () => {
+      attempts++;
+      if (attempts > maxAttempts) {
+        clearInterval(interval);
+        log('Polling timeout — check GitHub Actions page', 'warn');
+        return;
+      }
+
+      try {
+        const res = await ghFetch(`/repos/${owner}/${repo}/actions/workflows/${workflowId}/runs?per_page=1`);
+        const data = await res.json();
+        const run = data.workflow_runs?.[0];
+
+        if (!run) return;
+
+        if (run.status === 'completed') {
+          clearInterval(interval);
+          const icon = run.conclusion === 'success' ? '✅' : '❌';
+          log(`${icon} Run #${run.run_number} completed: ${run.conclusion}`, run.conclusion === 'success' ? 'success' : 'error');
+          log(`→ <a href="${run.html_url}" target="_blank" style="color:var(--blue)">View on GitHub</a>`);
+          loadHistory();
+          loadReleases();
+        } else if (attempts % 5 === 0) {
+          log(`⏳ Run #${run.run_number}: ${run.status}...`);
+        }
+      } catch (err) {
+        // silently retry
+      }
+    }, 5000);
+  }
+
+  // ── Load run history ───────────────────────────────────
+  async function loadHistory() {
+    const owner = LS('owner'), repo = LS('repo');
+    try {
+      const res = await ghFetch(`/repos/${owner}/${repo}/actions/runs?per_page=15`);
+      const data = await res.json();
+      const tbody = $('#history-body');
+
+      if (!data.workflow_runs?.length) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-dim);padding:24px;">No runs found</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = data.workflow_runs.map(run => {
+        const status = run.status === 'completed' ? run.conclusion : run.status;
+        const statusClass = status === 'success' ? 'success' : status === 'failure' ? 'failed' : status === 'in_progress' ? 'running' : 'pending';
+        const duration = run.updated_at && run.created_at
+          ? formatDuration(new Date(run.updated_at) - new Date(run.created_at))
+          : '—';
+        return `<tr>
+          <td><a href="${run.html_url}" target="_blank" style="color:var(--blue)">#${run.run_number}</a></td>
+          <td>${esc(run.name)}</td>
+          <td><span class="status-badge ${statusClass}">${status}</span></td>
+          <td><code>${esc(run.head_branch)}</code></td>
+          <td>${new Date(run.created_at).toLocaleString()}</td>
+          <td>${duration}</td>
+          <td><a href="${run.html_url}" target="_blank" style="color:var(--blue);font-size:12px;">View →</a></td>
+        </tr>`;
+      }).join('');
+    } catch (err) {
+      // silently fail
+    }
+  }
+
+  // ── Load releases ──────────────────────────────────────
+  async function loadReleases() {
+    const owner = LS('owner'), repo = LS('repo');
+    try {
+      const res = await ghFetch(`/repos/${owner}/${repo}/releases?per_page=10`);
+      const data = await res.json();
+      const container = $('#releases-list');
+
+      if (!Array.isArray(data) || data.length === 0) {
+        container.innerHTML = '<p style="padding:20px;text-align:center;color:var(--text-dim);">No releases found. Trigger a build to create one.</p>';
+        return;
+      }
+
+      container.innerHTML = data.map(rel => `
+        <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <strong style="color:var(--accent);">${esc(rel.name || rel.tag_name)}</strong>
+            <span style="color:var(--text-dim);font-size:12px;margin-left:8px;">${new Date(rel.published_at).toLocaleDateString()}</span>
+            ${rel.prerelease ? '<span class="status-badge" style="margin-left:8px;background:rgba(210,153,34,0.12);color:var(--yellow);">pre-release</span>' : ''}
+          </div>
+          <div style="display:flex;gap:8px;">
+            ${(rel.assets || []).map(a => `
+              <a href="${a.browser_download_url}" class="btn btn-secondary" style="padding:6px 14px;font-size:12px;" download>
+                ⬇ ${esc(a.name)} <span style="color:var(--text-dim);margin-left:4px;">(${formatSize(a.size)})</span>
+              </a>
+            `).join('')}
+            <a href="${rel.html_url}" class="btn btn-secondary" style="padding:6px 14px;font-size:12px;" target="_blank">View</a>
+          </div>
+        </div>
+      `).join('');
+    } catch (err) {
+      // silently fail
+    }
+  }
+
+  // ── Refresh buttons ────────────────────────────────────
+  $('#refresh-history-btn').addEventListener('click', () => loadHistory());
+  $('#refresh-releases-btn').addEventListener('click', () => loadReleases());
+
+  // ── Utility functions ──────────────────────────────────
+  function formatDuration(ms) {
+    const s = Math.floor(ms / 1000);
+    if (s < 60) return `${s}s`;
+    const m = Math.floor(s / 60);
+    return `${m}m ${s % 60}s`;
+  }
+
+  function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  }
+
+  function esc(str) {
+    if (!str) return '';
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+})();
+</script>
+
+</body>
+</html>

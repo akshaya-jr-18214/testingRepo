@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Branch Validation</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Branch Validation</h1>
+    <p class="subtitle">Compare commits between two branches</p>
+
+    <div class="form-group">
+      <label for="service">Service</label>
+      <select id="service">
+        <option value="CRM">CRM</option>
+        <option value="BIGIN">Bigin</option>
+        <option value="CRMINTELLIGENCE">CRM Intelligence</option>
+        <option value="CRMINTELLIGENCEPY">CRM Intelligence (Py)</option>
+        <option value="COMMANDCENTER">Command Center</option>
+        <option value="PLATFORM">Platform</option>
+        <option value="PHONEBRIDGEPLATFORM">PhoneBridge Platform</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="parentBranch">Parent Branch</label>
+      <input type="text" id="parentBranch" placeholder="e.g. ZOHOCRM_TB489_DB3_CX_HF_BRANCH">
+    </div>
+
+    <div class="form-group">
+      <label for="childBranch">Child Branch</label>
+      <input type="text" id="childBranch" placeholder="e.g. ZOHOCRM_TB489_DB4_CX_HF_BRANCH">
+    </div>
+
+    <div class="form-group">
+      <label for="scrollUntilDate">Validate Up To Date</label>
+      <input type="date" id="scrollUntilDate">
+      <span class="hint">Stop scrolling when commits reach this date. Leave empty for full scroll.</span>
+    </div>
+
+    <button id="validateBtn" class="btn-primary">Validate</button>
+
+    <div id="status" class="status hidden"></div>
+
+    <div id="history-section" class="history-section hidden">
+      <h2>Recent Validations</h2>
+      <ul id="history-list"></ul>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
